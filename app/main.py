@@ -984,14 +984,24 @@ def build_department_trend_pipeline(
     to_dt = datetime.strptime(to_date_str, "%Y-%m-%d")
     to_dt_plus_one = to_dt + timedelta(days=1)
 
-    dept_emps = list(db.employees.find({"department": department}, {"emp_code": 1}))
-    emp_codes = [e["emp_code"] for e in dept_emps]
-
     return [
         {
             "$match": {
-                "emp_code": {"$in": emp_codes},
                 "date": {"$gte": from_date_str, "$lte": to_date_str},
+            }
+        },
+        {
+            "$lookup": {
+                "from": "employees",
+                "localField": "emp_code",
+                "foreignField": "emp_code",
+                "as": "emp",
+            }
+        },
+        {"$unwind": "$emp"},
+        {
+            "$match": {
+                "emp.department": department,
             }
         },
         {
